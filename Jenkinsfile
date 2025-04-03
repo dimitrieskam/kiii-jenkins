@@ -1,35 +1,15 @@
-pipeline {
-    agent {
-        docker {
-            image 'docker:latest'
-            args '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-        }
+node {
+    def app
+    stage('Clone repository') {
+        checkout scm
     }
-    environment {
-        DOCKER_HOST = "unix:///var/run/docker.sock"
+    stage('Build image') {
+            app = docker.build("marijadimitrieska/kiii-jenkins")
     }
-    stages {
-        stage('Clone repository') {
-            steps {
-                checkout scm
-            }
-        }
-        stage('Build image') {
-            steps {
-                script {
-                    def app = docker.build("marijadimitrieska/kiii-jenkins")
-                }
-            }
-        }
-        stage('Push image') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
-                        app.push("${env.BRANCH_NAME}-${env.BUILD_NUMBER}")
-                        app.push("${env.BRANCH_NAME}-latest")
-                    }
-                }
-            }
+    stage('Push image') {   
+        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+            app.push("${env.BRANCH_NAME}-${env.BUILD_NUMBER}")
+            app.push("${env.BRANCH_NAME}-latest")
         }
     }
 }
